@@ -45,6 +45,8 @@ The **62.2 MiB NRO download** is an uncompressed Switch 2 executable with an ico
 
 ![IZtwiNS2 playing an actual Grand Theft Auto VI Twitch stream at 720p with live chat](media/gta-vi-chat.png)
 
+![IZtwiNS2 video quality menu with 720p60 selected on a Grand Theft Auto VI stream](media/gta-vi-quality.png)
+
 ## Source and licenses
 
 IZtwiNS2 began as a Switch 2 port of [twiNX](https://github.com/DomazinUS/twiNX/tree/2d4338b96f1e18978391c63e54cb1df8d22501dc), a Twitch client for Nintendo Switch. The port adapts twiNX's Twitch playback requests and device sign-in flow and uses socket and TLS integration adapted from [IZ2S Cheese](https://github.com/byizmysh/iz2s-cheese). The Switch 2 interface, touch controls, chat panel, and IZ2S frontend are implemented in this repository. IZtwiNS2 application code is [GPL-3.0-only](LICENSE).
