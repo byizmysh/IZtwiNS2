@@ -48,7 +48,7 @@ async function run(platform, staging, output) {
         const portable = await installer.portableApp(verification);
         assert(portable.packed);
         assert(archive.decode(portable.bytes).every(item => !item.name.endsWith('.nro')));
-        await fs.writeFile(path.join(output, 'IZtwiNS2-0.11.0-native.iza'), portable.bytes);
+        await fs.writeFile(path.join(output, 'IZtwiNS2-0.11.0.iza'), portable.bytes);
         console.log(JSON.stringify({abi: header.nativeAbi, launcher: built.sha256, engine: sha256}));
     } finally {
         await fs.rm(verification.folder, {recursive: true, force: true});
