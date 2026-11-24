@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+#ifndef IZTWINS2_UI_SIZE_H
+#define IZTWINS2_UI_SIZE_H
+
+enum { DISPLAY_WIDTH = 1280, DISPLAY_HEIGHT = 720, PLAYER_CHAT_EDGE = 912,
+       PLAYER_CHAT_WIDTH = DISPLAY_WIDTH - PLAYER_CHAT_EDGE };
+
+#ifdef IZTWINS2_IZA
+enum { UI_SCALE_NUM = 3, UI_SCALE_DEN = 2 };
+#else
+enum { UI_SCALE_NUM = 1, UI_SCALE_DEN = 1 };
+#endif
+
+enum {
+    UI_WIDTH = DISPLAY_WIDTH * UI_SCALE_NUM / UI_SCALE_DEN,
+    UI_HEIGHT = DISPLAY_HEIGHT * UI_SCALE_NUM / UI_SCALE_DEN,
+    UI_CHAT_EDGE = PLAYER_CHAT_EDGE * UI_SCALE_NUM / UI_SCALE_DEN,
+    UI_CHAT_WIDTH = UI_WIDTH - UI_CHAT_EDGE,
+};
+
+static inline int ui_px(int value) {
+    return value * UI_SCALE_NUM / UI_SCALE_DEN;
+}
+
+#endif
