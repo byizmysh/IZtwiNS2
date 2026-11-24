@@ -2339,6 +2339,12 @@ static bool launched_from_iz2s(int argc, char **argv) {
         !strncmp(argv[0], modules, sizeof(modules) - 1);
 }
 
+static bool installed_iz2s_runtime(void) {
+    struct stat menu, runtime;
+    return !stat("sdmc:/iz2s/izlauncher.iza", &menu) && S_ISREG(menu.st_mode) &&
+           !stat("sdmc:/iz2s/core/bin/game/main", &runtime) && S_ISREG(runtime.st_mode);
+}
+
 static const char *launcher_return_path(void) {
     if (launcher_program(launcher_path)) return launcher_path;
     return launcher_program(launcher_companion) ? launcher_companion : NULL;
@@ -2716,35 +2722,43 @@ static bool player_frame(PlayerDisplay *display, App *app, PlayerInput *input, u
 }
 
 #ifndef IZTWINS2_IZA
-static void exit_note(FILE *log, const char *message) {
+static void exit_note(FILE *log, uint64_t started, const char *message) {
     if (!log) return;
-    fprintf(log, "%s\n", message);
+    fprintf(log, "[%llu ms] %s\n", (unsigned long long)((now_ns() - started) / 1000000), message);
     fflush(log);
 }
 
 static void finish_exit(App *app, Framebuffer *display, bool requested, int argc, char **argv) {
+    const uint64_t started = now_ns();
     request_shutdown(app);
     FILE *log = app->have_sd ? fopen(exit_log_path, "w") : NULL;
-    exit_note(log, requested ? "Exit requested in IZtwiNS2 (0.11.0)." : "Exit requested by the system (0.11.0).");
+    exit_note(log, started, requested ? "Exit requested in IZtwiNS2 (0.11.0)." :
+                                       "Exit requested by the system (0.11.0).");
     const char *target = NULL;
-    if (requested && app->have_sd && launched_from_iz2s(argc, argv)) {
+    bool iz2s_launch = requested && app->have_sd && launched_from_iz2s(argc, argv);
+    /* The integrated IZ2S loader already returns to the installed menu.
+     * Reserve next-load overrides for older standalone installations. */
+    bool standard_return = iz2s_launch && installed_iz2s_runtime();
+    if (iz2s_launch && !standard_return) {
         target = launcher_return_path();
         if (!target) {
             app->returning_to_launcher = true;
             app->exit_detail = "Preparing the IZ2S launcher…";
             draw_menu(display, app);
             if (extract_launcher()) target = launcher_companion;
-            exit_note(log, target ? "Prepared the bundled IZ2S launcher." : "No launcher return entry was available.");
+            exit_note(log, started, target ? "Prepared the bundled IZ2S launcher." :
+                                             "No launcher return entry was available.");
         }
     }
-    app->returning_to_launcher = target != NULL;
+    app->returning_to_launcher = standard_return || target != NULL;
     bool visible = requested;
     unsigned last = UINT_MAX;
     for (;;) {
         unsigned pending = shutdown_pending(app);
         if (pending != last) {
             if (log) {
-                fprintf(log, "Workers active:%s%s%s%s%s%s%s\n", pending ? "" : " none",
+                fprintf(log, "[%llu ms] Workers active:%s%s%s%s%s%s%s\n",
+                    (unsigned long long)((now_ns() - started) / 1000000), pending ? "" : " none",
                     pending & WAIT_ACCOUNT ? " account" : "", pending & WAIT_PREVIEWS ? " previews" : "",
                     pending & WAIT_CHAT ? " chat" : "", pending & WAIT_NETWORK ? " video network" : "",
                     pending & WAIT_DECODER ? " video decoder" : "", pending & WAIT_SUBTITLES ? " subtitles" : "");
@@ -2763,9 +2777,9 @@ static void finish_exit(App *app, Framebuffer *display, bool requested, int argc
 
     finish_player(app);
 
-    exit_note(log, "Closing framebuffer.");
+    exit_note(log, started, "Closing framebuffer.");
     framebufferClose(display);
-    exit_note(log, "Framebuffer closed.");
+    exit_note(log, started, "Framebuffer closed.");
     if (target) {
         char arguments[sizeof(launcher_companion) + 2];
         snprintf(arguments, sizeof(arguments), "\"%s\"", target);
@@ -2774,8 +2788,9 @@ static void finish_exit(App *app, Framebuffer *display, bool requested, int argc
             fprintf(log, "IZ2S next load: 0x%08x, %s.\n", (unsigned)rc, target);
             fflush(log);
         }
-    } else exit_note(log, "Using the loader's default exit.");
-    exit_note(log, "Leaving IZtwiNS2 main.");
+    } else exit_note(log, started, standard_return ? "Using the installed IZ2S runtime return." :
+                                                    "Using the loader's default exit.");
+    exit_note(log, started, "Leaving IZtwiNS2 main.");
     if (log) fclose(log);
     if (app->own_sd) fsdevUnmountDevice("sdmc");
 }
