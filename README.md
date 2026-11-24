@@ -1,5 +1,9 @@
 # IZtwiNS2
 
+<p align="center">
+  <img src="media/logo.png" width="128" height="128" alt="IZtwiNS2 logo">
+</p>
+
 IZtwiNS2 is a standalone Twitch client for Nintendo Switch 2. Browse live channels and categories, watch streams, videos and clips, and read or send Twitch chat from the console.
 
 ## Compatibility
