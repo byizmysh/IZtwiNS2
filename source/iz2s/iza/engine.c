@@ -19,6 +19,8 @@ void * __dso_handle;
 void witchtubeHostedUnregisterUnwind(void);
 uint32_t iztwi_tls_init(const Sb4Compat *host);
 uint32_t iztwi_tls_close(void);
+bool iztwi_bsd_reap(void);
+bool iztwi_bsd_waited_for_memory(void);
 
 #define DECLARE_IMPORT(name) static __typeof__(name) *host_##name;
 IZTWINS2_HOST_IMPORTS(DECLARE_IMPORT)
@@ -40,10 +42,17 @@ void __wrap_swkbdConfigSetInitialText(SwkbdConfig *c, const char *s) { host_swkb
 
 static bool runtime_ready, runtime_retained, tls_ready, sm_ready, player_ready, closing;
 static PlayerDisplay display;
-static bool first_frame;
+static bool first_frame, bsd_return_reported;
 
 static void report(IzNativeApp *app, const char *stage, uint32_t result) {
     startup_note(app, "startup-engine.txt", stage, result);
+}
+
+static void report_bsd_return(IzNativeApp *app) {
+    if (!bsd_return_reported && iztwi_bsd_waited_for_memory()) {
+        bsd_return_reported = true;
+        startup_note(app, "bsd-memory.txt", "waited-for-bsd-buffer", 0);
+    }
 }
 
 static uint32_t initialize(IzNativeApp *app) {
@@ -106,7 +115,7 @@ static uint32_t initialize(IzNativeApp *app) {
     return 0;
 }
 
-static uint32_t stop_player(void) {
+static uint32_t stop_player(IzNativeApp *app) {
     if (runtime_retained) return SB4_HOST_RUNTIME_RETAINED;
     if (player_ready) {
         if (!closing) {
@@ -116,6 +125,8 @@ static uint32_t stop_player(void) {
         if (!iztwi_player_workers_stopped()) return IZ_NATIVE_STOP_PENDING;
         iztwi_player_stop();
         player_ready = false;
+        if (!iztwi_bsd_reap()) report(app, "bsd-buffer-still-borrowed", ETIMEDOUT);
+        report_bsd_return(app);
     }
     uint32_t result = iztwi_audio_finish();
     if (result) return result;
@@ -149,8 +160,9 @@ uint32_t iz_engine(IzNativeApp *app, uint32_t event) {
                 first_frame = true;
                 report(app, "first-frame-v0110", 0);
             }
+            report_bsd_return(app);
             return 0;
-        case IZ_NATIVE_STOP: return stop_player();
+        case IZ_NATIVE_STOP: return stop_player(app);
         default: return EINVAL;
     }
 }

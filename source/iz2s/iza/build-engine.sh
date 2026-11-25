@@ -27,7 +27,7 @@ client_id=${IZTWINS2_CLIENT_ID:-1a0hyv0sxnwpkvde7pjyo4gpwcnwj9}
 flags+=(-DIZTWINS2_CLIENT_ID=\""$client_id"\")
 
 objects=()
-for file in "$here"/{engine,engine-tls,native-audio,native-storage}.c "$sdk"/sb4/source/{host-posix,host-runtime,host-heap}.c \
+for file in "$here"/{engine,engine-tls,native-audio,native-bsd,native-storage}.c "$sdk"/sb4/source/{host-posix,host-runtime,host-heap}.c \
     "$src"/{player,https,twitch,media,webvtt,account,library,menu,preview,preview-cache,chat,chat-protocol,typography,touch}.c \
     "$src/vendor/qrcodegen/qrcodegen.c"; do
     object="$output/$(basename "${file%.c}").o"
@@ -48,7 +48,7 @@ while IFS= read -r symbol; do
 done < <(sed -nE 's/^SB4_POSIX(_[A-Z]+)?\(([a-zA-Z0-9_]+),.*/\2/p' "$sdk/sb4/source/host-posix.def")
 wraps+=(-Wl,--wrap=__aarch64_read_tp)
 for symbol in threadCreate threadStart threadClose threadWaitForExit swkbdCreate swkbdClose swkbdShow \
-    swkbdConfigMakePresetDefault swkbdConfigSetGuideText swkbdConfigSetInitialText __nx_exit exit; do
+    swkbdConfigMakePresetDefault swkbdConfigSetGuideText swkbdConfigSetInitialText socketInitialize tmemClose __nx_exit exit; do
     wraps+=("-Wl,--wrap=$symbol")
 done
 "${cross}g++" -mcpu=cortex-a78c+crypto -mtp=soft -fPIE -static -nostartfiles \
